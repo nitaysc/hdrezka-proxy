@@ -54,7 +54,6 @@ async function warmUpCookies() {
 app.use('/proxy', createProxyMiddleware({
   target: 'https://hdrezka-home.tv',
   changeOrigin: true,
-  followRedirects: true,
   pathRewrite: {
     '^/proxy': '',
   },
