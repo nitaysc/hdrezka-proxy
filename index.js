@@ -68,6 +68,9 @@ app.use('/proxy', createProxyMiddleware({
   },
   onProxyRes: (proxyRes, req, res) => {
     delete proxyRes.headers['x-frame-options'];
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'X-Requested-With, content-type, Authorization';
     
     // Update cookie jar from response
     parseCookies(proxyRes.headers['set-cookie']);
