@@ -39,7 +39,7 @@ function getCookieString() {
 // Warm-up: fetch the homepage to get initial cookies
 async function warmUpCookies() {
   try {
-    const res = await fetch('https://hdrezka.ag/', {
+    const res = await fetch('https://hdrezka-home.tv/', {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
     });
     const setCookies = res.headers.getSetCookie ? res.headers.getSetCookie() : [];
@@ -52,8 +52,9 @@ async function warmUpCookies() {
 
 // Proxy endpoint
 app.use('/proxy', createProxyMiddleware({
-  target: 'https://hdrezka.ag',
+  target: 'https://hdrezka-home.tv',
   changeOrigin: true,
+  followRedirects: true,
   pathRewrite: {
     '^/proxy': '',
   },
