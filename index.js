@@ -72,6 +72,16 @@ app.use('/proxy', createProxyMiddleware({
     proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
     proxyRes.headers['Access-Control-Allow-Headers'] = 'X-Requested-With, content-type, Authorization';
     
+    // Rewrite Location header for redirects
+    if (proxyRes.headers.location) {
+      const loc = proxyRes.headers.location;
+      if (loc.startsWith('http')) {
+        proxyRes.headers.location = loc.replace(/^https?:\/\/[^\/]+/, '/proxy');
+      } else if (loc.startsWith('/')) {
+        proxyRes.headers.location = '/proxy' + loc;
+      }
+    }
+    
     // Update cookie jar from response
     parseCookies(proxyRes.headers['set-cookie']);
   },
