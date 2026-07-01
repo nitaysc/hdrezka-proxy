@@ -9,6 +9,10 @@ const app = express();
 // Enable CORS for all routes
 app.use(cors());
 
+// Parse URL-encoded bodies for POST requests
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
 // Health check endpoint
 app.get('/', (req, res) => {
   res.send('HDRezka Proxy is running!');
@@ -85,6 +89,47 @@ app.get('/fetch-page', async (req, res) => {
   }
 });
 
+// Direct AJAX POST endpoint - uses native fetch() with fresh cookies
+app.post('/post-ajax', async (req, res) => {
+  const targetPath = req.query.path;
+  if (!targetPath) {
+    return res.status(400).json({ error: 'Missing path parameter' });
+  }
+  
+  const url = `https://hdrezka-home.tv${targetPath}`;
+  try {
+    // Refresh cookies before AJAX call
+    await warmUpCookies();
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Cookie': getCookieString(),
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Referer': 'https://hdrezka-home.tv/',
+        'Origin': 'https://hdrezka-home.tv',
+      },
+      body: new URLSearchParams(req.body).toString(),
+      redirect: 'follow',
+    });
+    
+    // Update cookies from response
+    const setCookies = response.headers.getSetCookie ? response.headers.getSetCookie() : [];
+    parseCookies(setCookies);
+    
+    const data = await response.text();
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Content-Type', 'application/json; charset=utf-8');
+    res.send(data);
+  } catch (e) {
+    console.error('Post-ajax error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Proxy endpoint
 app.use('/proxy', createProxyMiddleware({
   target: 'https://hdrezka-home.tv',
@@ -130,4 +175,10 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, async () => {
   console.log(`Proxy listening on port ${PORT}`);
   await warmUpCookies();
+  
+  // Refresh cookies every 10 minutes
+  setInterval(async () => {
+    console.log('Refreshing cookies...');
+    await warmUpCookies();
+  }, 10 * 60 * 1000);
 });
