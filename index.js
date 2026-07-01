@@ -50,6 +50,41 @@ async function warmUpCookies() {
   }
 }
 
+// Direct fetch endpoint - bypasses http-proxy-middleware redirect issues
+app.get('/fetch-page', async (req, res) => {
+  const targetPath = req.query.path;
+  if (!targetPath) {
+    return res.status(400).json({ error: 'Missing path parameter' });
+  }
+  
+  const url = `https://hdrezka-home.tv${targetPath}`;
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Cookie': getCookieString(),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Encoding': 'identity',
+        'Referer': 'https://hdrezka-home.tv/',
+      },
+      redirect: 'follow',
+    });
+    
+    // Update cookies from response
+    const setCookies = response.headers.getSetCookie ? response.headers.getSetCookie() : [];
+    parseCookies(setCookies);
+    
+    const html = await response.text();
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (e) {
+    console.error('Fetch-page error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Proxy endpoint
 app.use('/proxy', createProxyMiddleware({
   target: 'https://hdrezka-home.tv',
